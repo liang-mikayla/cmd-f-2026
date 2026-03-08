@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DYNO — Bouldering Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+  
+  
+  
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface-2: #1c1c1c;
+      --border: #2a2a2a;
+      --text: #f0f0f0;
+      --text-muted: #888;
+      --lime: #c8f400;
+      --lime-dim: rgba(200, 244, 0, 0.12);
+      --lime-glow: rgba(200, 244, 0, 0.35);
+      --danger: #ff5a5a;
+      --radius: 10px;
+      --font-display: "Instrument Sans", sans-serif;
+      --font-sans: "Instrument Sans", sans-serif;
+      --font-mono: "Fragment Mono", monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── ONBOARDING OVERLAY ───────────────────────────────────── */
+    #onboarding {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    #onboarding.hidden { display: none; }
+
+    .ob-card {
+      background: #111;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 520px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.8);
+    }
+
+    /* Welcome screen */
+    .ob-welcome {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      min-height: 340px;
+    }
+    .ob-welcome-left {
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .dino-svg {
+      width: 130px;
+      height: auto;
+      display: block;
+      animation: dinoBounce 2.4s ease-in-out infinite;
+    }
+    @keyframes dinoBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .ob-welcome-right {
+      padding: 2.5rem 2rem 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+    .ob-logo {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      letter-spacing: 0.1em;
+      color: var(--text);
+      line-height: 1;
+    }
+    .ob-tagline {
+      font-family: var(--font-display);
+      font-size: 1.85rem;
+      line-height: 1.05;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+    .ob-tagline span { color: var(--lime); }
+    .ob-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Step screens */
+    .ob-step { display: none; padding: 2.5rem 2.5rem 2rem; }
+    .ob-step.active { display: block; }
+
+    .ob-step-kicker {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #3ecfb2;
+      margin-bottom: 0.6rem;
+    }
+    .ob-step h2 {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+    .ob-step-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .ob-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.65rem;
+      margin-bottom: 1.75rem;
+    }
+    .ob-option {
+      background: var(--surface-2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 0.75rem;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .ob-option:hover { border-color: #444; background: #222; }
+    .ob-option.selected {
+      border-color: #3ecfb2;
+      background: rgba(62, 207, 178, 0.1);
+    }
+    .ob-option-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+    .ob-option-label {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .ob-option-desc {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .ob-option-check {
+      display: none;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      color: #3ecfb2;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 0.25rem;
+    }
+    .ob-option.selected .ob-option-check { display: block; }
+
+    .ob-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+    }
+    .ob-dots {
+      display: flex;
+      gap: 0.4rem;
+    }
+    .ob-dot {
+      width: 22px;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border);
+      transition: background 0.2s;
+    }
+    .ob-dot.active { background: #3ecfb2; }
+
+    /* ── BUTTONS ─────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-family: var(--font-display);
+      font-size: 1rem;
+      letter-spacing: 0.12em;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      padding: 0.65rem 1.5rem;
+      transition: transform 0.12s, box-shadow 0.18s, background 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-lime {
+      background: var(--lime);
+      color: #0a0a0a;
+      box-shadow: 0 6px 24px var(--lime-glow);
+    }
+    .btn-lime:hover { transform: translateY(-1px); box-shadow: 0 10px 32px var(--lime-glow); }
+    .btn-lime:disabled { background: #333; color: #555; box-shadow: none; cursor: not-allowed; }
+    .btn-lime:disabled:hover { transform: none; box-shadow: none; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: #555; background: var(--surface-2); }
+    .btn-sm {
+      font-size: 0.85rem;
+      padding: 0.45rem 1rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── MAIN APP (hidden until onboarding done) ──────────────── */
+    #app { display: none; }
+    #app.visible { display: block; }
+
+    /* Header */
+    .app-header {
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(10,10,10,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 50;
+    }
+    .app-logo {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .ob-logo {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+    .app-nav {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .app-nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .app-nav a:hover { color: var(--text); }
+
+    /* Hero */
+    .app-hero {
+      padding: 3.5rem 2rem 2.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2rem;
+      align-items: center;
+    }
+    .app-hero-greeting {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--lime);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+    .app-hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 6vw, 4.5rem);
+      letter-spacing: 0.04em;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+    .app-hero h1 span { color: var(--lime); }
+    .app-hero-sub {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      max-width: 38ch;
+    }
+    .hero-stats-pill {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat-val {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      letter-spacing: 0.06em;
+      color: var(--lime);
+      line-height: 1;
+    }
+    .hero-stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 0.25rem;
+    }
+
+    /* Main layout */
+    .app-body {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .log-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .log-title span { color: var(--lime); }
+    .log-sub {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Video drop zone */
+    .video-dropzone {
+      border: 1.5px dashed rgba(94, 234, 212, 0.4);
+      border-radius: 12px;
+      background: #161616;
+      margin-bottom: 1.75rem;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .video-dropzone.drag-over { border-color: var(--lime); }
+    .dropzone-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1.5rem;
+      gap: 0.5rem;
+      cursor: pointer;
+      text-align: center;
+    }
+    .dropzone-icon { font-size: 2.75rem; opacity: 0.65; margin-bottom: 0.25rem; }
+    .dropzone-label {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .dropzone-sub { font-size: 0.85rem; color: var(--text-muted); }
+    .link-btn {
+      background: none; border: none; padding: 0;
+      color: var(--lime); cursor: pointer;
+      font-size: inherit; text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* Chip selectors */
+    .chip-section { margin-bottom: 1.75rem; }
+    .chip-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    #gradeChips {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.5rem;
+    }
+    .chip {
+      background: #1e1e1e;
+      border: 1.5px solid #2e2e2e;
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 0.9rem 1rem;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .chip:hover { border-color: #555; }
+    .chip.chip-active {
+      background: rgba(62, 207, 178, 0.1);
+      border-color: #3ecfb2;
+      color: var(--text);
+    }
+
+    /* Extras collapsible */
+    .extras-details { margin-bottom: 1.25rem; }
+    .extras-toggle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0;
+    }
+    .extras-toggle::-webkit-details-marker { display: none; }
+    .extras-toggle::before { content: "＋"; color: var(--lime); font-size: 0.9rem; }
+    details[open] .extras-toggle::before { content: "－"; }
+    .extras-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    /* Cards */
+    .dyno-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+    .dyno-card-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      letter-spacing: 0.1em;
+      color: var(--text);
+      margin-bottom: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .dyno-card-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Form fields */
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    .field-full { grid-column: 1 / -1; }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.82rem;
+    }
+    .field label {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .field label .req {
+      color: var(--lime);
+      font-size: 0.65rem;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      padding: 0.55rem 0.7rem;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--lime);
+      box-shadow: 0 0 0 2px var(--lime-dim);
+    }
+    .field select option { background: #111; }
+    .field textarea { min-height: 65px; resize: vertical; }
+    .field small { font-size: 0.72rem; color: var(--text-muted); }
+
+    .form-actions {
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .tracker-error {
+      font-size: 0.78rem;
+      color: var(--danger);
+      min-height: 1rem;
+    }
+
+    /* Challenge Banner */
+    .challenge-banner {
+      display: none;
+      border-radius: 14px;
+      border: 1.5px solid rgba(200, 244, 0, 0.4);
+      background: linear-gradient(135deg, rgba(200,244,0,0.07), rgba(200,244,0,0.02));
+      padding: 1.1rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+      animation: challengeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .challenge-banner.is-visible { display: block; }
+    @keyframes challengeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .challenge-banner::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(62,207,178,0.1), transparent 55%);
+      pointer-events: none;
+    }
+    .challenge-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+    }
+    .challenge-icon { font-size: 1.5rem; line-height: 1; flex-shrink: 0; margin-top: 0.1rem; }
+    .challenge-body { flex: 1; }
+    .challenge-kicker {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #3ecfb2;
+      margin-bottom: 0.25rem;
+    }
+    .challenge-headline {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .challenge-headline strong { color: #3ecfb2; }
+    .challenge-sub { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .challenge-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(62,207,178,0.35);
+      border-radius: 8px;
+      padding: 0.4rem 0.8rem;
+    }
+    .challenge-num {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      letter-spacing: 0.06em;
+      color: #3ecfb2;
+      line-height: 1;
+    }
+    .challenge-num-label { font-size: 0.72rem; color: var(--text-muted); line-height: 1.3; }
+    .challenge-dismiss {
+      position: absolute;
+      top: 0.65rem;
+      right: 0.75rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      opacity: 0.55;
+      transition: opacity 0.15s;
+      padding: 0.2rem;
+    }
+    .challenge-dismiss:hover { opacity: 1; }
+
+
+    /* Summary stats */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.25rem;
+      align-items: center;
+    }
+    .summary-big-val {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      letter-spacing: 0.06em;
+      color: var(--lime);
+      line-height: 1;
+    }
+    .summary-big-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.2rem; }
+    .summary-tagline { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    /* Grade bars */
+    .grade-bars { display: flex; flex-direction: column; gap: 0.35rem; }
+    .grade-bar-row {
+      display: grid;
+      grid-template-columns: 2.5rem 1fr 1.5rem;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+    }
+    .grade-bar-label {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .grade-bar-track {
+      height: 5px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      overflow: hidden;
+    }
+    .grade-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #7aeb00, var(--lime));
+    }
+    .grade-bar-count { color: var(--text-muted); text-align: right; font-size: 0.72rem; }
+
+    /* Logbook table */
+    .empty-copy { font-size: 0.8rem; color: var(--text-muted); }
+    .logbook-scroll { overflow: auto; max-height: 280px; margin-top: 0.5rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    thead { position: sticky; top: 0; background: var(--surface); }
+    th {
+      padding: 0.45rem 0.5rem;
+      text-align: left;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.5rem 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--text);
+    }
+    tbody tr:hover td { background: rgba(255,255,255,0.03); }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .tag-sent { background: rgba(200,244,0,0.12); color: var(--lime); border: 1px solid rgba(200,244,0,0.3); }
+    .tag-project { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+
+    .btn-watch-video {
+      padding: 0.2rem 0.55rem;
+      font-size: 0.7rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-watch-video:hover { background: var(--lime-dim); color: var(--lime); border-color: rgba(200,244,0,0.3); }
+
+    /* Video preview in form */
+    .log-video-preview {
+      grid-column: 1 / -1;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .log-video-preview-shell {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      max-width: 360px;
+      margin-bottom: 0.65rem;
+    }
+    .log-video-preview-shell video { width: 100%; display: block; }
+    .log-video-preview-shell canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .log-video-preview-actions { margin-bottom: 0.65rem; }
+    .log-video-feedback { font-size: 0.8rem; color: var(--text-muted); }
+    .log-video-feedback ul { padding-left: 1.1rem; margin-top: 0.4rem; }
+    .log-video-feedback li { margin-bottom: 0.25rem; }
+
+    /* Video modal */
+    .video-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .video-modal-backdrop.is-open { display: flex; }
+    .video-modal-content {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      max-width: 88vw;
+      max-height: 85vh;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+    }
+    .video-modal-player-wrap { position: relative; }
+    .video-modal-content video {
+      display: block;
+      max-width: 100%;
+      max-height: 75vh;
+      border-radius: 12px 12px 0 0;
+    }
+    .video-modal-content .video-modal-player-wrap canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .video-modal-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: rgba(0,0,0,0.8);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .video-modal-close:hover { background: var(--surface-2); }
+    .video-modal-actions { padding: 1rem 1.25rem; border-top: 1px solid var(--border); }
+    .video-modal-actions .btn { margin: 0; }
+
+    /* Footer */
+    .app-footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .app-footer a { color: var(--text-muted); text-decoration: none; }
+    .app-footer a:hover { color: var(--text); }
+
+    /* Responsive */
+    @media (max-width: 820px) {
+      #gradeChips { grid-template-columns: repeat(4, 1fr); }
+      .app-hero { grid-template-columns: 1fr; }
+      .ob-welcome { grid-template-columns: 1fr; }
+      .ob-welcome-left { display: none; }
+    }
+    @media (max-width: 560px) {
+      .ob-options { grid-template-columns: 1fr; }
+      .field-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── ONBOARDING ─────────────────────────────────────────────── -->
+  <div id="onboarding">
+    <div class="ob-card">
+
+      <!-- Welcome -->
+      <div class="ob-welcome" id="ob-welcome">
+        <div class="ob-welcome-left">
+          <!-- Dinosaur SVG -->
+          <img src="data:image/png;base64,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" class="dino-svg" alt="DYNO mascot" />
+        </div>
+        <div class="ob-welcome-right">
+          <div class="ob-welcome-right-inner">
+            <div class="ob-logo"><img src="data:image/png;base64,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" alt="DYNO" style="height:28px;width:auto;display:block;" /></div>
+            <div class="ob-tagline">LET'S GET YOU <span>CLIMBING.</span></div>
+            <p class="ob-sub">Answer two quick questions and DYNO will set up your tracking profile.</p>
+            <button class="btn btn-lime" onclick="startOnboarding()" style="width:100%; margin-top:0.25rem;">GET STARTED</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1: Level -->
+      <div class="ob-step" id="ob-step-1">
+        <div class="ob-step-kicker">Step 01 / 02 · Level</div>
+        <h2>WHAT'S YOUR LEVEL?</h2>
+        <p class="ob-step-hint">Pick as many as apply.</p>
+        <div class="ob-options">
+          <div class="ob-option" onclick="selectOb(this,'level','beginner')">
+            <div class="ob-option-label">V0–V2</div>
+            <div class="ob-option-desc">Just getting started. Still figuring out your feet.</div>
+            <div class="ob-option-check">✓ Selected</div>
+          </div>
+          <div class="ob-option" onclick="selectOb(this,'level','intermediate')">
+            <div class="ob-option-label">V3–V5</div>
+            <div class="ob-option-desc">Getting comfortable. Projecting consistently.</div>
+            <div class="ob-option-check">✓ Selected</div>
+          </div>
+          <div class="ob-option" onclick="selectOb(this,'level','advanced')">
+            <!-- <div class="ob-option-icon">🔥</div> -->
+            <div class="ob-option-label">V6+</div>
+            <div class="ob-option-desc">Sending hard stuff. DYNO will keep up.</div>
+            <div class="ob-option-check">✓ Selected</div>
+          </div>
+        </div>
+        <div class="ob-footer">
+          <div class="ob-dots">
+            <div class="ob-dot active"></div>
+            <div class="ob-dot"></div>
+          </div>
+          <button class="btn btn-lime btn-sm" onclick="goStep(2)" id="ob-next-1" disabled>NEXT →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Goal -->
+      <div class="ob-step" id="ob-step-2">
+        <div class="ob-step-kicker">Step 02 / 02 · Goal</div>
+        <h2>WHAT ARE YOU HERE FOR?</h2>
+        <p class="ob-step-hint">Pick as many as apply.</p>
+        <div class="ob-options">
+          <div class="ob-option" onclick="selectOb(this,'goal','better')">
+            <div class="ob-option-icon">↑</div>
+            <div class="ob-option-label">GET BETTER</div>
+            <div class="ob-option-desc">Track grades, measure progress, break through your projects.</div>
+            <div class="ob-option-check">✓ Selected</div>
+          </div>
+          <div class="ob-option" onclick="selectOb(this,'goal','fun')">
+            <div class="ob-option-icon">🔥</div>
+            <div class="ob-option-label">HAVE FUN</div>
+            <div class="ob-option-desc">No pressure. Just move on the wall and enjoy it.</div>
+            <div class="ob-option-check">✓ Selected</div>
+          </div>
+          <div class="ob-option" onclick="selectOb(this,'goal','compete')">
+            <div class="ob-option-icon">✕</div>
+            <div class="ob-option-label">BEAT MY FRIENDS</div>
+            <div class="ob-option-desc">There is a competition. DYNO will help you win their achievements.</div>
+            <div class="ob-option-check">✓ Selected</div>
+          </div>
+        </div>
+        <div class="ob-footer">
+          <div class="ob-dots">
+            <div class="ob-dot"></div>
+            <div class="ob-dot active"></div>
+          </div>
+          <button class="btn btn-lime btn-sm" onclick="finishOnboarding()" id="ob-next-2" disabled>LET'S CLIMB →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── MAIN APP ─────────────────────────────────────────────────── -->
+  <div id="app">
+    <header class="app-header">
+      <a href="#" class="app-logo"><img src="data:image/png;base64,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" alt="DYNO" style="height:28px;width:auto;display:block;" /></a>
+      <nav class="app-nav">
+        <a href="#tracker">Tracker</a>
+        <a href="#tracker" class="btn btn-ghost btn-sm">Log a climb</a>
+      </nav>
+    </header>
+
+    <!-- <div class="app-hero">
+      <div> -->
+        <!-- <div class="app-hero-greeting">Welcome back, climber</div>
+        <h1>SEND<br><span>HARDER.</span></h1>
+        <p class="app-hero-sub">Log your climbs, track your grades, and let DYNO challenge you to the next level.</p> -->
+      <!-- </div> -->
+      <!-- <div class="hero-stats-pill">
+        <div class="hero-stat">
+          <div class="hero-stat-val" id="heroHighestGrade">—</div>
+          <div class="hero-stat-label">Hardest sent</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val" id="heroTotalClimbs">0</div>
+          <div class="hero-stat-label">Total logged</div>
+        </div>
+      </div> -->
+    <!-- </div> -->
+
+    <div class="app-body" id="tracker">
+
+      <!-- Full-width Log Form -->
+      <div class="log-full-card dyno-card">
+        <h2 class="log-title">LOG A <span>CLIMB.</span></h2>
+        <p class="log-sub">Upload your video. DYNO analyzes your movement and logs it automatically.</p>
+
+        <!-- Video drop zone -->
+        <div class="video-dropzone" id="videoDropzone">
+          <input id="logVideo" type="file" accept="video/*" style="display:none" />
+          <div class="dropzone-inner" id="dropzoneInner">
+            <div class="dropzone-icon">📷</div>
+            <div class="dropzone-label">DROP YOUR VIDEO HERE</div>
+            <div class="dropzone-sub">Or <button type="button" class="link-btn" id="browseBtn">browse to upload</button> — MP4, MOV, any phone video</div>
+          </div>
+          <div id="logVideoPreview" class="log-video-preview" style="display:none">
+            <div class="log-video-preview-shell">
+              <video id="logVideoPreviewPlayer" playsinline controls></video>
+              <canvas id="logVideoPreviewCanvas"></canvas>
+            </div>
+            <div class="log-video-preview-actions">
+              <button type="button" class="btn btn-ghost btn-sm" id="logVideoAnalyzeBtn">Analyze posture</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="removeVideoBtn">Remove</button>
+            </div>
+            <div id="logVideoPostureFeedback" class="log-video-feedback"></div>
+          </div>
+        </div>
+
+        <form id="trackerForm">
+          <!-- Hidden inputs to store chip selections -->
+          <input type="hidden" id="grade" />
+          <input type="hidden" id="wallType" />
+          <input type="hidden" id="status" value="project" />
+          <input type="hidden" id="status" value="attempts" />
+
+          <!-- Grade chips -->
+          <div class="chip-section">
+            <div class="chip-label">GRADE</div>
+            <div class="chip-group" id="gradeChips">
+              <button type="button" class="chip" data-val="V0">V0</button>
+              <button type="button" class="chip" data-val="V1">V1</button>
+              <button type="button" class="chip" data-val="V2">V2</button>
+              <button type="button" class="chip" data-val="V3">V3</button>
+              <button type="button" class="chip" data-val="V4">V4</button>
+              <button type="button" class="chip" data-val="V5">V5</button>
+              <button type="button" class="chip" data-val="V6">V6</button>
+              <button type="button" class="chip" data-val="V7">V7</button>
+              <button type="button" class="chip" data-val="V8">V8</button>
+              <button type="button" class="chip" data-val="V9">V9</button>
+              <button type="button" class="chip" data-val="V10">V10</button>
+            </div>
+          </div>
+
+          <!-- Wall Type chips -->
+          <div class="chip-section">
+            <div class="chip-label">WALL TYPE</div>
+            <div class="chip-group" id="wallChips">
+              <button type="button" class="chip" data-val="slab">SLAB</button>
+              <button type="button" class="chip" data-val="vertical">VERTICAL</button>
+              <button type="button" class="chip" data-val="overhang">OVERHANG</button>
+              <button type="button" class="chip" data-val="roof">ROOF</button>
+            </div>
+          </div>
+
+          <!-- Status chips -->
+          <div class="chip-section">
+            <div class="chip-label">STATUS</div>
+            <div class="chip-group" id="statusChips">
+              <button type="button" class="chip chip-active" data-val="project">PROJECTING</button>
+              <button type="button" class="chip" data-val="sent">SENT</button>
+            </div>
+          </div>
+
+          <!-- Attempts chips -->
+          <input type="hidden" id="attempts" />
+          <div class="chip-section">
+            <div class="chip-label">ATTEMPTS</div>
+            <div class="chip-group" id="attemptsChips">
+              <button type="button" class="chip" data-val="1">1</button>
+              <button type="button" class="chip" data-val="2">2</button>
+              <button type="button" class="chip" data-val="3">3</button>
+              <button type="button" class="chip" data-val="4">4</button>
+              <button type="button" class="chip" data-val="5">5</button>
+              <button type="button" class="chip" data-val="6+">6+</button>
+            </div>
+          </div>
+
+          <!-- Collapsible extras -->
+          <details class="extras-details">
+            <summary class="extras-toggle">More details (optional)</summary>
+            <div class="extras-grid">
+              <div class="field">
+                <label for="started">Start date</label>
+                <input id="started" type="date" />
+              </div>
+              <div class="field">
+                <label for="completed">End date</label>
+                <input id="completed" type="date" />
+              </div>
+              <!-- <div class="field">
+                <label for="location">Gym / wall</label>
+                <input id="location" type="text" placeholder="e.g. Dogpatch Boulders" />
+              </div> -->
+              <div class="field field-full">
+                <label for="routeName">Problem name</label>
+                <input id="routeName" type="text" placeholder="Optional" />
+              </div>
+              <div class="field field-full">
+                <label for="notes">Notes</label>
+                <textarea id="notes" placeholder="Crux beta, how it felt…"></textarea>
+              </div>
+            </div>
+          </details>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-lime" id="saveClimbBtn" disabled>SAVE CLIMB →</button>
+            <button type="button" class="btn btn-ghost" id="clearFormBtn">CLEAR</button>
+            <p id="trackerError" class="tracker-error"></p>
+          </div>
+        </form>
+
+      </div>
+
+      <!-- Challenge Banner -->
+      <div class="challenge-banner" id="challengeBanner" role="status" aria-live="polite">
+        <button class="challenge-dismiss" id="challengeDismiss" aria-label="Dismiss">✕</button>
+        <div class="challenge-inner">
+          <div class="challenge-body">
+            <div class="challenge-kicker">Next challenge unlocked</div>
+            <div class="challenge-headline">Can you send <strong id="challengeGrade">V4</strong> in under <strong id="challengeAttempts">6</strong> attempts?</div>
+            <p class="challenge-sub" id="challengeSub">Based on your data, here's your model-predicted target for the next grade up.</p>
+            <div class="challenge-badge">
+              <span class="challenge-num" id="challengeAttemptsLarge">6</span>
+              <span class="challenge-num-label">predicted<br>attempts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="dyno-card">
+        <div class="dyno-card-title">STATS</div>
+        <div class="summary-grid">
+          <div>
+            <div class="summary-big-val" id="highestGrade">—</div>
+            <div class="summary-big-label">Hardest sent</div>
+            <div class="summary-tagline">Your highest completed grade.</div>
+          </div>
+          <div>
+            <div id="gradeDistribution" class="grade-bars">
+              <p class="empty-copy">Log a climb to see volume by grade.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logbook -->
+      <div class="dyno-card">
+        <div class="dyno-card-title" style="justify-content:space-between;">
+          LOGBOOK
+          <button class="btn btn-ghost btn-sm" id="clearLogsBtn" style="color:var(--danger);border-color:rgba(255,90,90,0.3);font-size:0.72rem;">Clear logs</button>
+        </div>
+        <p class="empty-copy" id="emptyState">No climbs yet — log your first attempt.</p>
+        <div class="logbook-scroll">
+          <table aria-label="Logged climbs">
+            <thead>
+              <tr>
+                <th>Grade</th>
+                <th>Problem</th>
+                <th>Started</th>
+                <th>Completed</th>
+                <th>Attempts</th>
+                <th>Video</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="climbTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="app-footer">
+      <span class="app-logo"><img src="data:image/png;base64,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" alt="DYNO" style="height:22px;width:auto;display:block;" /></span>
+      <span>Local prototype · data stays in your browser</span>
+    </footer>
+  </div>
+
+  <!-- Video modal -->
+  <div class="video-modal-backdrop" id="videoModalBackdrop" aria-hidden="true">
+    <div class="video-modal-content">
+      <button type="button" class="video-modal-close" id="videoModalClose" aria-label="Close video">✕</button>
+      <div class="video-modal-player-wrap">
+        <video id="videoModalPlayer" controls playsinline></video>
+        <canvas id="videoModalCanvas"></canvas>
+      </div>
+      <div class="video-modal-actions">
+        <button type="button" class="btn btn-lime btn-sm" id="modalAnalyzePosture">Analyze posture</button>
+      </div>
+      <div id="videoModalPostureFeedback" class="log-video-feedback" style="padding: 0 1.25rem 1rem;"></div>
+    </div>
+  </div>
+
+  <!-- Onboarding JS -->
+  <script>
+    const obProfile = { level: null, goal: null };
+
+    function startOnboarding() {
+      document.getElementById('ob-welcome').style.display = 'none';
+      document.getElementById('ob-step-1').classList.add('active');
+    }
+
+    function selectOb(el, key, val) {
+      // Toggle selection within the same options group
+      el.closest('.ob-options').querySelectorAll('.ob-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      obProfile[key] = val;
+      // Enable next button
+      const nextBtn = key === 'level' ? document.getElementById('ob-next-1') : document.getElementById('ob-next-2');
+      if (nextBtn) nextBtn.disabled = false;
+    }
+
+    function goStep(n) {
+      document.querySelectorAll('.ob-step').forEach(s => s.classList.remove('active'));
+      document.getElementById(`ob-step-${n}`).classList.add('active');
+    }
+
+    function finishOnboarding() {
+      document.getElementById('onboarding').classList.add('hidden');
+      document.getElementById('app').classList.add('visible');
+    }
+  </script>
+
+  <!-- MediaPipe Pose CDN (global Pose constructor) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+  <script>
+    // Shared posture analysis – used by tracker form (pre-save) and video modal (saved logs)
+    window.runPostureAnalysis = async function (videoEl, canvasEl, feedbackEl) {
+      if (!videoEl || !videoEl.src) return;
+      if (!window.Pose) {
+        if (feedbackEl) feedbackEl.textContent = "MediaPipe Pose not loaded. Check your network.";
+        return;
+      }
+
+      let pose = window._boulderTrackPose;
+      if (!pose) {
+        pose = new window.Pose({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+        });
+        pose.setOptions({
+          modelComplexity: 1,
+          smoothLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+        window._boulderTrackPose = pose;
+      }
+
+      const postureSamples = [];
+      let rafId = null;
+      let analyzing = true;
+
+      function ensureCanvasSize() {
+        if (!videoEl || !canvasEl) return;
+        const w = videoEl.videoWidth || videoEl.clientWidth || 640;
+        const h = videoEl.videoHeight || videoEl.clientHeight || 360;
+        if (w && h) {
+          canvasEl.width = w;
+          canvasEl.height = h;
+        }
+      }
+
+      function collectSample(landmarks) {
+        if (!videoEl || Number.isNaN(videoEl.currentTime)) return;
+        const sL = landmarks[11], sR = landmarks[12], hL = landmarks[23], hR = landmarks[24];
+        const fL = landmarks[31], fR = landmarks[32];
+        if (!sL || !sR || !hL || !hR) return;
+        const visible = (lm) => lm && (lm.visibility ?? 1) > 0.4;
+        if (!visible(sL) || !visible(sR) || !visible(hL) || !visible(hR)) return;
+        const shoulderCenter = { x: (sL.x + sR.x) / 2, y: (sL.y + sR.y) / 2 };
+        const hipCenter = { x: (hL.x + hR.x) / 2, y: (hL.y + hR.y) / 2 };
+        const dx = shoulderCenter.x - hipCenter.x, dy = shoulderCenter.y - hipCenter.y;
+        const trunkAngleDeg = Math.abs((Math.atan2(dx, dy) * 180) / Math.PI);
+        let feetY = null;
+        if (visible(fL) || visible(fR)) {
+          const ys = [];
+          if (visible(fL)) ys.push(fL.y);
+          if (visible(fR)) ys.push(fR.y);
+          feetY = ys.reduce((a, b) => a + b, 0) / ys.length;
+        }
+        postureSamples.push({ t: videoEl.currentTime, trunkAngleDeg, hipY: hipCenter.y, feetY });
+      }
+
+      function drawPose(results) {
+        if (!canvasEl) return;
+        const ctx = canvasEl.getContext("2d");
+        ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+        if (!results?.poseLandmarks?.length) return;
+        const lm = results.poseLandmarks;
+        const draw = (i, color, label) => {
+          const p = lm[i];
+          if (!p || p.visibility < 0.4) return null;
+          const x = p.x * canvasEl.width, y = p.y * canvasEl.height;
+          ctx.beginPath();
+          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+          if (label) { ctx.font = "11px Instrument Sans,sans-serif"; ctx.fillStyle = "#e5e7eb"; ctx.fillText(label, x + 9, y + 4); }
+          return { x, y };
+        };
+        const hips = [draw(23, "rgba(56,189,248,0.95)", "Hip"), draw(24, "rgba(56,189,248,0.95)", "")].filter(Boolean);
+        const shoulders = [draw(11, "rgba(251,191,36,0.95)", "Shoulder"), draw(12, "rgba(251,191,36,0.95)", "")].filter(Boolean);
+        const hands = [draw(15, "rgba(244,63,94,0.95)", "Hand"), draw(16, "rgba(244,63,94,0.95)", "")].filter(Boolean);
+        const feet = [draw(31, "rgba(96,165,250,0.95)", "Foot"), draw(32, "rgba(96,165,250,0.95)", "")].filter(Boolean);
+        ctx.strokeStyle = "rgba(34,211,166,0.75)";
+        ctx.lineWidth = 3;
+        [shoulders, hips, hands, feet].forEach((g) => {
+          if (g.length >= 2) { ctx.beginPath(); ctx.moveTo(g[0].x, g[0].y); g.slice(1).forEach((p) => ctx.lineTo(p.x, p.y)); ctx.stroke(); }
+        });
+        if (hips[0] && shoulders[0]) {
+          const mh = { x: (hips[0].x + (hips[1]?.x ?? hips[0].x)) / 2, y: (hips[0].y + (hips[1]?.y ?? hips[0].y)) / 2 };
+          const ms = { x: (shoulders[0].x + (shoulders[1]?.x ?? shoulders[0].x)) / 2, y: (shoulders[0].y + (shoulders[1]?.y ?? shoulders[0].y)) / 2 };
+          ctx.strokeStyle = "rgba(34,211,166,0.85)";
+          ctx.beginPath();
+          ctx.moveTo(mh.x, mh.y);
+          ctx.lineTo(ms.x, ms.y);
+          ctx.stroke();
+        }
+        collectSample(lm);
+      }
+
+      function summarize() {
+        if (!feedbackEl) return;
+        if (!postureSamples.length) {
+          feedbackEl.innerHTML = "Not enough pose data detected in this video.";
+          return;
+        }
+        const trunkAngles = postureSamples.map((s) => s.trunkAngleDeg);
+        const avgTrunk = trunkAngles.reduce((a, b) => a + b, 0) / trunkAngles.length;
+        const maxTrunk = Math.max(...trunkAngles);
+        const withFeet = postureSamples.filter((s) => s.feetY != null);
+        const hipsBelowRatio = withFeet.length ? withFeet.filter((s) => s.hipY > s.feetY - 0.02).length / withFeet.length : 0;
+        const lines = [];
+        if (avgTrunk < 10) lines.push("Your torso stays mostly stacked over your hips, which is great for efficiency and balance.");
+        else if (avgTrunk < 25) lines.push("You climb with a moderate side lean. This is often fine on overhangs, but keep an eye on twisting too much.");
+        else lines.push("There is significant torso rotation for long portions of the climb. Try to keep your chest and hips more square to the wall when possible.");
+        if (maxTrunk > 35) lines.push("On the hardest moves your torso angle becomes very pronounced, suggesting you may be over‑reaching instead of moving your feet up first.");
+        if (hipsBelowRatio > 0.15) lines.push("At several points your hips drop close to the level of your feet. Focusing on driving hips up before reaching could improve body tension.");
+        else lines.push("You generally keep your hips above your feet, which helps maintain tension and control.");
+        feedbackEl.innerHTML = "<ul>" + lines.map((l) => `<li>${l}</li>`).join("") + "</ul>";
+      }
+
+      pose.onResults(drawPose);
+      ensureCanvasSize();
+      if (feedbackEl) feedbackEl.textContent = "Analyzing…";
+      videoEl.currentTime = 0;
+      videoEl.playbackRate = 0.75;
+
+      const step = async () => {
+        if (!analyzing) return;
+        if (videoEl.paused || videoEl.ended) {
+          analyzing = false;
+          summarize();
+          return;
+        }
+        try {
+          await pose.send({ image: videoEl });
+        } catch (e) {
+          console.error(e);
+        }
+        rafId = requestAnimationFrame(step);
+      };
+
+      await videoEl.play();
+      requestAnimationFrame(step);
+    };
+  </script>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = "bouldertrack_climbs_v1";
+      const form = document.getElementById("trackerForm");
+      const errorEl = document.getElementById("trackerError");
+      const tbody = document.getElementById("climbTableBody");
+      const emptyState = document.getElementById("emptyState");
+      const highestGradeEl = document.getElementById("highestGrade");
+      const gradeDistributionEl = document.getElementById("gradeDistribution");
+
+      const gradeOrder = ["V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10"];
+      let climbs = [];
+
+      // IndexedDB for storing log videos (avoids localStorage size limits)
+      const IDB_NAME = "BoulderTrackDB";
+      const IDB_STORE = "logVideos";
+
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(IDB_NAME, 1);
+          req.onerror = () => reject(req.error);
+          req.onsuccess = () => resolve(req.result);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(IDB_STORE)) {
+              db.createObjectStore(IDB_STORE);
+            }
+          };
+        });
+      }
+
+      function saveVideoForClimb(climbId, blob) {
+        return openDB().then((db) => {
+            return new Promise((resolve, reject) => {
+              const tx = db.transaction(IDB_STORE, "readwrite");
+              const store = tx.objectStore(IDB_STORE);
+              const req = store.put(blob, climbId);
+              req.onsuccess = () => resolve();
+              req.onerror = () => reject(req.error);
+              tx.oncomplete = () => db.close();
+            });
+          });
+      }
+
+      function getVideoForClimb(climbId) {
+        const key = typeof climbId === "string" ? Number(climbId) : climbId;
+        return openDB().then((db) => {
+            return new Promise((resolve, reject) => {
+              const tx = db.transaction(IDB_STORE, "readonly");
+              const store = tx.objectStore(IDB_STORE);
+              const req = store.get(key);
+              req.onsuccess = () => resolve(req.result);
+              req.onerror = () => reject(req.error);
+              tx.oncomplete = () => db.close();
+            });
+          });
+      }
+
+      function parseStored() {
+        try {
+          const raw = window.localStorage.getItem(STORAGE_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return [];
+          return parsed;
+        } catch {
+          return [];
+        }
+      }
+
+      function persist() {
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(climbs));
+        } catch {
+          // ignore quota errors for now
+        }
+      }
+
+      function normalizeDate(value) {
+        if (!value) return "";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return "";
+        return d.toISOString().slice(0, 10);
+      }
+
+      function formatDate(value) {
+        if (!value) return "—";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return "—";
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+      }
+
+      function renderSummary() {
+        if (!climbs.length) {
+          highestGradeEl.textContent = "—";
+          gradeDistributionEl.innerHTML = '<p class="empty-copy">Log a climb to see how your sessions stack up.</p>';
+          return;
+        }
+
+        const completed = climbs.filter((c) => c.completed);
+        let highestIndex = -1;
+        const counts = Object.fromEntries(gradeOrder.map((g) => [g, 0]));
+
+        for (const climb of climbs) {
+          if (gradeOrder.includes(climb.grade)) {
+            counts[climb.grade] += 1;
+          }
+        }
+        for (const climb of completed) {
+          const idx = gradeOrder.indexOf(climb.grade);
+          if (idx > highestIndex) highestIndex = idx;
+        }
+
+        highestGradeEl.textContent = highestIndex >= 0 ? gradeOrder[highestIndex] : "—";
+
+        // Update hero stats
+        const heroHighest = document.getElementById("heroHighestGrade");
+        const heroTotal   = document.getElementById("heroTotalClimbs");
+        if (heroHighest) heroHighest.textContent = highestIndex >= 0 ? gradeOrder[highestIndex] : "—";
+        if (heroTotal)   heroTotal.textContent   = climbs.length;
+
+
+        gradeDistributionEl.innerHTML = "";
+
+        const maxCount = Math.max(...Object.values(counts), 0);
+        gradeOrder.forEach((grade) => {
+          const count = counts[grade] || 0;
+          const barWidth = maxCount ? Math.max(8, (count / maxCount) * 100) : 8;
+          const pill = document.createElement("div");
+          pill.className = "grade-bar-row";
+          pill.innerHTML = `
+            <span class="grade-bar-label">${grade}</span>
+            <div class="grade-bar-track">
+              <div class="grade-bar-fill" style="width: ${barWidth}%;"></div>
+            </div>
+            <span class="grade-bar-count">${count}</span>
+          `;
+          gradeDistributionEl.appendChild(pill);
+        });
+      }
+
+      function renderTable() {
+        tbody.innerHTML = "";
+        if (!climbs.length) {
+          emptyState.style.display = "block";
+          return;
+        }
+        emptyState.style.display = "none";
+
+        const sorted = [...climbs].sort((a, b) => {
+          const aDate = a.started || a.completed || "";
+          const bDate = b.started || b.completed || "";
+          return (bDate || "").localeCompare(aDate || "");
+        });
+
+        for (const climb of sorted) {
+          const tr = document.createElement("tr");
+          const statusTagClass = climb.completed ? "tag tag-sent" : "tag tag-project";
+          const statusLabel = climb.completed ? "Sent" : "Projecting";
+
+          const videoCell = climb.hasVideo
+            ? `<td class="log-video-cell"><button type="button" class="btn-watch-video" data-climb-id="${climb.id}">Watch</button></td>`
+            : "<td>—</td>";
+
+          tr.innerHTML = `
+            <td>${climb.grade}</td>
+            <td>${climb.name || "—"}</td>
+            <td>${formatDate(climb.started)}</td>
+            <td>${formatDate(climb.completed)}</td>
+            <td>${climb.attempts != null ? climb.attempts : "—"}</td>
+            ${videoCell}
+            <td><span class="${statusTagClass}">${statusLabel}</span></td>
+          `;
+          tbody.appendChild(tr);
+        }
+      }
+
+      function hydrate() {
+        climbs = parseStored();
+        renderSummary();
+        renderTable();
+      }
+
+      async function handleSubmit(event) {
+        event.preventDefault();
+        errorEl.textContent = "";
+
+        const grade = document.getElementById("grade").value;
+        const name = document.getElementById("routeName").value.trim();
+        const location = document.getElementById("location")?.value.trim() ?? "";
+        const status = document.getElementById("status").value;
+        const wallType = (document.getElementById("wallType") || {}).value || "";
+        let started = normalizeDate(document.getElementById("started").value);
+        let completed = normalizeDate(document.getElementById("completed").value);
+        const notes = document.getElementById("notes").value.trim();
+        const attemptsRaw = document.getElementById("attempts").value.trim();
+        let attempts = null;
+        if (attemptsRaw !== "") {
+          const n = parseInt(attemptsRaw, 10);
+          if (Number.isNaN(n) || n < 1) {
+            errorEl.textContent = "Attempts must be a positive number.";
+            return;
+          }
+          attempts = n;
+        }
+
+        const logVideoInput = document.getElementById("logVideo");
+        const logVideoFile = logVideoInput && logVideoInput.files && logVideoInput.files[0] ? logVideoInput.files[0] : null;
+
+        if (!grade) {
+          errorEl.textContent = "Choose a grade.";
+          return;
+        }
+        if (!wallType) {
+          errorEl.textContent = "Choose a wall type.";
+          return;
+        }
+        if (!attemptsRaw) {
+          errorEl.textContent = "Choose number of attempts.";
+          return;
+        }
+        if (!started) {
+          started = normalizeDate(new Date());
+        }
+        if (started && completed) {
+          if (new Date(completed) < new Date(started)) {
+            errorEl.textContent = "Completed date can’t be before the start date.";
+            return;
+          }
+        }
+
+        const climb = {
+          id: Date.now(),
+          grade,
+          name,
+          location,
+          wallType,
+          status,
+          started,
+          completed: completed || "",
+          attempts: attempts ?? undefined,
+          notes,
+          hasVideo: !!(logVideoFile && logVideoFile.size > 0),
+        };
+
+        // If user marks as sent but doesn't provide a date, assume today.
+        if (status === "sent" && !climb.completed) {
+          climb.completed = normalizeDate(new Date());
+        }
+
+        climbs.push(climb);
+        persist();
+        renderSummary();
+        renderTable();
+
+        if (climb.hasVideo && logVideoFile) {
+          try {
+            await saveVideoForClimb(climb.id, logVideoFile);
+          } catch (err) {
+            console.error("Failed to save log video", err);
+          }
+        }
+
+        // ── Challenge engine ──────────────────────────────────────────────
+        // If the user just logged a *sent* climb, generate a challenge for
+        // the next grade up.  The predicted attempt count comes from a lookup
+        // table derived from the Random Forest model trained on Mikayla's data.
+        // Replace the values below with your model's actual per-grade
+        // predictions once you export them from Python (e.g. via json.dumps).
+        if (climb.status === "sent" || climb.completed) {
+          const gradeIndex = gradeOrder.indexOf(climb.grade);
+          const nextGradeIndex = gradeIndex + 1;
+          if (nextGradeIndex < gradeOrder.length) {
+            const nextGrade = gradeOrder[nextGradeIndex];
+
+            // ── Model predictions: average attempts per grade (replace with
+            //    your exported model output) ────────────────────────────────
+            const modelPredictions = {
+              V0:   3,
+              V1:   6,
+              V2:   7,
+              V3:   8,
+              V4:   9,
+              V5:  11,
+              V6:  12,
+              V7:  12,
+              V8:  12,
+              V9:  12,
+              V10: 21,
+            };
+
+            const predictedAttempts = modelPredictions[nextGrade] ?? 6;
+            showChallenge(nextGrade, predictedAttempts, climb.wall_type);
+          }
+        }
+        // ─────────────────────────────────────────────────────────────────
+
+        resetForm();
+      }
+
+      function resetForm() {
+        form.reset();
+        errorEl.textContent = "";
+        // Reset chip selections
+        document.querySelectorAll(".chip-group .chip").forEach(c => c.classList.remove("chip-active"));
+        // Default status back to "project"
+        const firstStatus = document.querySelector("#statusChips .chip[data-val='project']");
+        if (firstStatus) firstStatus.classList.add("chip-active");
+        document.getElementById("status").value = "project";
+        document.getElementById("grade").value = "";
+        document.getElementById("wallType").value = "";
+        document.getElementById("attempts").value = "";
+        if (saveClimbBtn) saveClimbBtn.disabled = true;
+        if (logVideoPreviewUrl) {
+          URL.revokeObjectURL(logVideoPreviewUrl);
+          logVideoPreviewUrl = null;
+        }
+        const logVideoInput = document.getElementById("logVideo");
+        if (logVideoInput) logVideoInput.value = "";
+        if (logVideoPreview) logVideoPreview.style.display = "none";
+        if (dropzoneInner) dropzoneInner.style.display = "flex";
+        if (logVideoPostureFeedback) logVideoPostureFeedback.textContent = "";
+      }
+
+      // ── Challenge banner helpers ──────────────────────────────────────
+      const challengeBanner   = document.getElementById("challengeBanner");
+      const challengeGradeEl  = document.getElementById("challengeGrade");
+      const challengeAttEl    = document.getElementById("challengeAttempts");
+      const challengeAttLarge = document.getElementById("challengeAttemptsLarge");
+      const challengeSubEl    = document.getElementById("challengeSub");
+      const challengeDismiss  = document.getElementById("challengeDismiss");
+      const progressWrap      = document.getElementById("challengeProgressWrap");
+      const progressGradeEl   = document.getElementById("challengeProgressGrade");
+      const progressFraction  = document.getElementById("challengeProgressFraction");
+      const progressFill      = document.getElementById("challengeProgressFill");
+
+      // Active challenge state
+      let activeChallenge = null;
+
+      function showChallenge(nextGrade, predictedAttempts, wallType) {
+        activeChallenge = { grade: nextGrade, target: predictedAttempts, attemptsUsed: 0 };
+
+        challengeGradeEl.textContent  = nextGrade;
+        challengeAttEl.textContent    = predictedAttempts;
+        challengeAttLarge.textContent = predictedAttempts;
+
+        const wallHint = wallType ? ` on a ${wallType}` : "";
+        challengeSubEl.textContent =
+          `Your model predicts it will take around ${predictedAttempts} attempts to send ${nextGrade}${wallHint}. ` +
+          `Log your ${nextGrade} attempts below to track your progress against this target.`;
+
+        // Check if there are already logged attempts for this grade (projecting)
+        const existingAttempts = climbs.filter(
+          (c) => c.grade === nextGrade && !c.completed
+        ).length;
+
+        if (existingAttempts > 0) {
+          updateChallengeProgress(nextGrade, existingAttempts, predictedAttempts);
+        } else {
+          if (progressWrap) progressWrap.style.display = "none";
+        }
+
+        // Reset animation
+        challengeBanner.classList.remove("is-visible");
+        void challengeBanner.offsetWidth; // reflow to restart animation
+        challengeBanner.classList.add("is-visible");
+        challengeBanner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      function updateChallengeProgress(grade, used, target) {
+        if (!progressWrap) return;
+        progressWrap.style.display = "flex";
+        if (progressGradeEl) progressGradeEl.textContent  = grade;
+        if (progressFraction) progressFraction.textContent = `${used} / ${target} attempts used`;
+        const pct = Math.min(100, Math.round((used / target) * 100));
+        if (progressFill) {
+          progressFill.style.width = pct + "%";
+          progressFill.style.background = pct >= 100
+            ? "linear-gradient(90deg, #f97373, #ef4444)"
+            : "linear-gradient(90deg, #fbbf24, #f97316)";
+        }
+      }
+
+      // Update progress bar whenever a new projecting climb is logged for the
+      // active challenge grade.
+      const _origRenderTable = renderTable;
+      renderTable = function () {
+        _origRenderTable();
+        if (!activeChallenge) return;
+        const { grade, target } = activeChallenge;
+        const used = climbs.filter((c) => c.grade === grade && !c.completed).length;
+        if (used > 0) updateChallengeProgress(grade, used, target);
+      };
+
+      if (challengeDismiss) {
+        challengeDismiss.addEventListener("click", () => {
+          challengeBanner.classList.remove("is-visible");
+          activeChallenge = null;
+        });
+      }
+      // ─────────────────────────────────────────────────────────────────
+
+      if (form) {
+        form.addEventListener("submit", handleSubmit);
+      }
+
+      hydrate();
+
+      // ── Chip selectors ───────────────────────────────────────────────
+      function wireChips(groupId, hiddenId) {
+        const group = document.getElementById(groupId);
+        const hidden = document.getElementById(hiddenId);
+        if (!group || !hidden) return;
+        group.querySelectorAll(".chip").forEach(chip => {
+          chip.addEventListener("click", () => {
+            group.querySelectorAll(".chip").forEach(c => c.classList.remove("chip-active"));
+            chip.classList.add("chip-active");
+            hidden.value = chip.dataset.val;
+          });
+        });
+      }
+      wireChips("gradeChips", "grade");
+      wireChips("wallChips", "wallType");
+      wireChips("statusChips", "status");
+      wireChips("attemptsChips", "attempts");
+
+      const saveClimbBtn = document.getElementById("saveClimbBtn");
+      function updateSaveBtn() {
+        const filled =
+          document.getElementById("grade").value &&
+          document.getElementById("wallType").value &&
+          document.getElementById("attempts").value;
+        if (saveClimbBtn) saveClimbBtn.disabled = !filled;
+      }
+      ["grade", "wallType", "attempts"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("change", updateSaveBtn);
+      });
+      document.querySelectorAll("#gradeChips .chip, #wallChips .chip, #attemptsChips .chip")
+        .forEach(chip => chip.addEventListener("click", updateSaveBtn));
+
+      const clearFormBtn = document.getElementById("clearFormBtn");
+      if (clearFormBtn) clearFormBtn.addEventListener("click", resetForm);
+      // ─────────────────────────────────────────────────────────────────
+
+      // ── Video dropzone ───────────────────────────────────────────────
+      const videoDropzone = document.getElementById("videoDropzone");
+      const dropzoneInner = document.getElementById("dropzoneInner");
+      const browseBtn = document.getElementById("browseBtn");
+      const removeVideoBtn = document.getElementById("removeVideoBtn");
+
+      if (browseBtn) {
+        browseBtn.addEventListener("click", () => logVideoInput && logVideoInput.click());
+      }
+      if (dropzoneInner) {
+        dropzoneInner.addEventListener("click", () => logVideoInput && logVideoInput.click());
+      }
+      if (videoDropzone) {
+        videoDropzone.addEventListener("dragover", e => { e.preventDefault(); videoDropzone.classList.add("drag-over"); });
+        videoDropzone.addEventListener("dragleave", () => videoDropzone.classList.remove("drag-over"));
+        videoDropzone.addEventListener("drop", e => {
+          e.preventDefault();
+          videoDropzone.classList.remove("drag-over");
+          const file = e.dataTransfer.files && e.dataTransfer.files[0];
+          if (file && logVideoInput) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            logVideoInput.files = dt.files;
+            logVideoInput.dispatchEvent(new Event("change"));
+          }
+        });
+      }
+      if (removeVideoBtn) {
+        removeVideoBtn.addEventListener("click", () => {
+          if (logVideoInput) { logVideoInput.value = ""; }
+          if (logVideoPreviewUrl) { URL.revokeObjectURL(logVideoPreviewUrl); logVideoPreviewUrl = null; }
+          if (logVideoPreview) logVideoPreview.style.display = "none";
+          if (dropzoneInner) dropzoneInner.style.display = "flex";
+        });
+      }
+      // ─────────────────────────────────────────────────────────────────
+      const clearLogsBtn = document.getElementById("clearLogsBtn");
+      if (clearLogsBtn) {
+        clearLogsBtn.addEventListener("click", () => {
+          if (!confirm("Delete all logged climbs? This cannot be undone.")) return;
+          climbs = [];
+          try { window.localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+          // Also wipe IndexedDB videos
+          openDB().then((db) => {
+            const tx = db.transaction(IDB_STORE, "readwrite");
+            tx.objectStore(IDB_STORE).clear();
+            db.close();
+          }).catch(() => {});
+          renderSummary();
+          renderTable();
+          if (challengeBanner) challengeBanner.classList.remove("is-visible");
+        });
+      }
+      // ─────────────────────────────────────────────────────────────────
+
+      // ── Log video preview: show when file selected, wire Analyze posture ─
+      const logVideoInput = document.getElementById("logVideo");
+      const logVideoPreview = document.getElementById("logVideoPreview");
+      const logVideoPreviewPlayer = document.getElementById("logVideoPreviewPlayer");
+      const logVideoPreviewCanvas = document.getElementById("logVideoPreviewCanvas");
+      const logVideoAnalyzeBtn = document.getElementById("logVideoAnalyzeBtn");
+      const logVideoPostureFeedback = document.getElementById("logVideoPostureFeedback");
+      let logVideoPreviewUrl = null;
+
+      if (logVideoInput) {
+        logVideoInput.addEventListener("change", (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (logVideoPreviewUrl) {
+            URL.revokeObjectURL(logVideoPreviewUrl);
+            logVideoPreviewUrl = null;
+          }
+          if (!file) {
+            if (logVideoPreview) logVideoPreview.style.display = "none";
+            if (dropzoneInner) dropzoneInner.style.display = "flex";
+            return;
+          }
+          logVideoPreviewUrl = URL.createObjectURL(file);
+          if (logVideoPreviewPlayer) {
+            logVideoPreviewPlayer.src = logVideoPreviewUrl;
+            logVideoPreviewPlayer.load();
+          }
+          if (logVideoPostureFeedback) logVideoPostureFeedback.textContent = "";
+          if (logVideoPreview) logVideoPreview.style.display = "block";
+          if (dropzoneInner) dropzoneInner.style.display = "none";
+        });
+      }
+      if (logVideoAnalyzeBtn && logVideoPreviewPlayer && logVideoPreviewCanvas && logVideoPostureFeedback) {
+        logVideoAnalyzeBtn.addEventListener("click", () => {
+          if (!logVideoPreviewPlayer.src) return;
+          if (logVideoPreviewPlayer.readyState < 2) {
+            logVideoPostureFeedback.textContent = "Please wait for the video to load, then try again.";
+            return;
+          }
+          window.runPostureAnalysis(logVideoPreviewPlayer, logVideoPreviewCanvas, logVideoPostureFeedback);
+        });
+      }
+
+      // ── Log video modal: rewatch videos stored in IndexedDB ─────────────
+      const videoModalBackdrop = document.getElementById("videoModalBackdrop");
+      const videoModalClose = document.getElementById("videoModalClose");
+      const videoModalPlayer = document.getElementById("videoModalPlayer");
+      const modalAnalyzeBtn = document.getElementById("modalAnalyzePosture");
+      let currentVideoObjectUrl = null;
+      let currentVideoClimbId = null;
+
+      function closeVideoModal() {
+        if (videoModalPlayer) {
+          videoModalPlayer.pause();
+          videoModalPlayer.removeAttribute("src");
+          videoModalPlayer.load();
+        }
+        if (currentVideoObjectUrl) {
+          URL.revokeObjectURL(currentVideoObjectUrl);
+          currentVideoObjectUrl = null;
+        }
+        if (videoModalBackdrop) {
+          videoModalBackdrop.classList.remove("is-open");
+          videoModalBackdrop.setAttribute("aria-hidden", "true");
+        }
+      }
+
+      function openVideoModal(climbId) {
+        currentVideoClimbId = typeof climbId === "string" ? Number(climbId) : climbId;
+        getVideoForClimb(currentVideoClimbId)
+          .then((blob) => {
+            if (!blob || !videoModalPlayer || !videoModalBackdrop) return;
+            if (currentVideoObjectUrl) URL.revokeObjectURL(currentVideoObjectUrl);
+            currentVideoObjectUrl = URL.createObjectURL(blob);
+            videoModalPlayer.src = currentVideoObjectUrl;
+            videoModalBackdrop.classList.add("is-open");
+            videoModalBackdrop.setAttribute("aria-hidden", "false");
+            videoModalPlayer.play().catch(() => {});
+          })
+          .catch((err) => {
+            console.error("Could not load log video", err);
+          });
+      }
+
+      if (tbody) {
+        tbody.addEventListener("click", (e) => {
+          const btn = e.target.closest(".btn-watch-video");
+          if (btn && btn.dataset.climbId) {
+            openVideoModal(btn.dataset.climbId);
+          }
+        });
+      }
+      if (videoModalClose) {
+        videoModalClose.addEventListener("click", closeVideoModal);
+      }
+      if (videoModalBackdrop) {
+        videoModalBackdrop.addEventListener("click", (e) => {
+          if (e.target === videoModalBackdrop) closeVideoModal();
+        });
+      }
+      if (modalAnalyzeBtn && videoModalPlayer && document.getElementById("videoModalCanvas") && document.getElementById("videoModalPostureFeedback")) {
+        modalAnalyzeBtn.addEventListener("click", () => {
+          if (!videoModalPlayer.src) return;
+          const canvas = document.getElementById("videoModalCanvas");
+          const feedback = document.getElementById("videoModalPostureFeedback");
+          feedback.textContent = "";
+          window.runPostureAnalysis(videoModalPlayer, canvas, feedback);
+        });
+      }
+    })();
+
+  </script>
+</body>
+</html>
