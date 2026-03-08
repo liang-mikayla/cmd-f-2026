@@ -6,11 +6,23 @@ function startOnboarding() {
 }
 
 function selectOb(el, key, val) {
-  el.closest('.ob-options').querySelectorAll('.ob-option').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected');
-  obProfile[key] = val;
-  const nextBtn = key === 'level' ? document.getElementById('ob-next-1') : document.getElementById('ob-next-2');
-  if (nextBtn) nextBtn.disabled = false;
+  if (key === 'goal') {
+    el.classList.toggle('selected');
+    if (!Array.isArray(obProfile.goal)) obProfile.goal = [];
+    if (el.classList.contains('selected')) {
+      if (!obProfile.goal.includes(val)) obProfile.goal.push(val);
+    } else {
+      obProfile.goal = obProfile.goal.filter(v => v !== val);
+    }
+    const nextBtn = document.getElementById('ob-next-2');
+    if (nextBtn) nextBtn.disabled = obProfile.goal.length === 0;
+  } else {
+    el.closest('.ob-options').querySelectorAll('.ob-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    obProfile[key] = val;
+    const nextBtn = document.getElementById('ob-next-1');
+    if (nextBtn) nextBtn.disabled = false;
+  }
 }
 
 function goStep(n) {
