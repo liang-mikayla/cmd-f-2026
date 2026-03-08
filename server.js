@@ -2,13 +2,17 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { execFile } = require("child_process");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ── Paths ──────────────────────────────────────────────────────────────────
-const DATA_FILE = path.join(__dirname, "data", "climbs.json");
-const UPLOADS_DIR = path.join(__dirname, "uploads");
+const DATA_FILE        = path.join(__dirname, "data", "climbs.json");
+const PREDICTIONS_FILE = path.join(__dirname, "data", "predictions.json");
+const UPLOADS_DIR      = path.join(__dirname, "uploads");
+const PYTHON_BIN       = path.join(__dirname, "model", "venv", "bin", "python");
+const TRAIN_SCRIPT     = path.join(__dirname, "model", "train.py");
 
 // Ensure directories exist
 fs.mkdirSync(path.join(__dirname, "data"), { recursive: true });
@@ -96,6 +100,44 @@ app.delete("/api/videos", (_req, res) => {
     console.error("Failed to delete videos:", e);
   }
   res.json({ ok: true });
+});
+
+// ── REST API: Model ────────────────────────────────────────────────────────
+
+// GET /api/model/predictions — return current per-grade attempt predictions
+app.get("/api/model/predictions", (_req, res) => {
+  try {
+    if (!fs.existsSync(PREDICTIONS_FILE)) {
+      return res.json({
+        predictions: { V0:3,V1:6,V2:7,V3:8,V4:9,V5:11,V6:12,V7:12,V8:12,V9:12,V10:21 },
+        status: "fallback",
+      });
+    }
+    const raw = fs.readFileSync(PREDICTIONS_FILE, "utf8");
+    res.json(JSON.parse(raw));
+  } catch (e) {
+    console.error("Failed to read predictions:", e);
+    res.status(500).json({ error: "Could not load predictions" });
+  }
+});
+
+// POST /api/model/train — retrain model on base data + user climbs, save new predictions
+app.post("/api/model/train", (req, res) => {
+  execFile(PYTHON_BIN, [TRAIN_SCRIPT], { cwd: __dirname }, (err, stdout, stderr) => {
+    if (err) {
+      console.error("Model training failed:", stderr);
+      return res.status(500).json({ error: "Training failed", detail: stderr });
+    }
+    try {
+      const result = JSON.parse(stdout.trim());
+      fs.writeFileSync(PREDICTIONS_FILE, JSON.stringify(result, null, 2), "utf8");
+      console.log(`Model retrained (${result.status}):`, result.predictions);
+      res.json(result);
+    } catch (parseErr) {
+      console.error("Failed to parse model output:", stdout);
+      res.status(500).json({ error: "Bad model output" });
+    }
+  });
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────

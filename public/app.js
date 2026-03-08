@@ -9,6 +9,11 @@
   const gradeOrder = ["V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10"];
   let climbs = [];
 
+  // Live model predictions — updated after each sent climb
+  let modelPredictions = {
+    V0:3, V1:6, V2:7, V3:8, V4:9, V5:11, V6:12, V7:12, V8:12, V9:12, V10:21,
+  };
+
   // ── API helpers ───────────────────────────────────────────────────────────
 
   async function fetchClimbs() {
@@ -47,6 +52,24 @@
 
   async function deleteAllVideos() {
     await fetch("/api/videos", { method: "DELETE" });
+  }
+
+  async function fetchPredictions() {
+    const res = await fetch("/api/model/predictions");
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.predictions) modelPredictions = data.predictions;
+  }
+
+  async function triggerRetrain() {
+    try {
+      const res = await fetch("/api/model/train", { method: "POST" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.predictions) modelPredictions = data.predictions;
+    } catch (e) {
+      console.warn("Model retraining failed (non-fatal):", e);
+    }
   }
 
   // ── Utilities ─────────────────────────────────────────────────────────────
@@ -158,12 +181,11 @@
   }
 
   async function hydrate() {
-    try {
-      climbs = await fetchClimbs();
-    } catch (e) {
-      console.error("Could not load climbs from server:", e);
-      climbs = [];
-    }
+    // Load predictions and climbs in parallel
+    await Promise.all([
+      fetchPredictions().catch(() => {}),
+      fetchClimbs().then(c => { climbs = c; }).catch(() => { climbs = []; }),
+    ]);
     renderSummary();
     renderTable();
   }
@@ -253,12 +275,12 @@
       const nextGradeIndex = gradeIndex + 1;
       if (nextGradeIndex < gradeOrder.length) {
         const nextGrade = gradeOrder[nextGradeIndex];
-        const modelPredictions = {
-          V0:   3, V1:  6, V2:  7, V3:  8, V4:  9,
-          V5:  11, V6: 12, V7: 12, V8: 12, V9: 12, V10: 21,
-        };
-        const predictedAttempts = modelPredictions[nextGrade] ?? 6;
-        showChallenge(nextGrade, predictedAttempts, climb.wallType);
+
+        // Retrain model in background with new user data, then show challenge
+        triggerRetrain().then(() => {
+          const predictedAttempts = modelPredictions[nextGrade] ?? 6;
+          showChallenge(nextGrade, predictedAttempts, climb.wallType);
+        });
       }
     }
     // ─────────────────────────────────────────────────────────────────────
